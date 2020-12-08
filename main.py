@@ -9,11 +9,16 @@ import convert
 def inlinequery(update: Update, context: CallbackContext) -> None:
     """Handle the inline query."""
     query = update.inline_query.query
+    if query == "":
+        update.inline_query.answer([])
     try:
         result = convert.convert(query)
         results = [
             InlineQueryResultArticle(
-                id=uuid4(), title="转换成功！点这里", input_message_content=InputTextMessageContent(result)
+                id=uuid4(),
+                title="转换成功！点这里发送网页版 url",
+                input_message_content=InputTextMessageContent(result),
+                description=result
             ),
         ]
     except:
