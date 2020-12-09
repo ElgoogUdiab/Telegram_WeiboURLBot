@@ -72,8 +72,3 @@ def convert_mid(mid):
 
 def generate_url(mid):
     return f"https://weibo.com/{get_uid_from_mid(mid)}/{convert_mid(mid)}"
-
-if __name__ == "__main__":
-    url = "http://weibointl.api.weibo.com/share/188665113.html?weibo_id=4579794677141574"
-    print(url)
-    print(convert(url))
