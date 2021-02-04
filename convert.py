@@ -52,7 +52,7 @@ def get_uid_from_mid(mid):
         return uid
     raise ValueError("Invalid mid")
 
-def int_to_base(i, alphabet=ALPHABET):
+def int_to_base(i, alphabet=ALPHABET, padded_length=4):
     base = len(alphabet)
     if not isinstance(i, int):
         raise TypeError("Only integers are supported.")
@@ -62,8 +62,11 @@ def int_to_base(i, alphabet=ALPHABET):
     while i>0:
         result.append(i % base)
         i //= base
+    while len(result) < padded_length:
+        result.append(0)
     result.reverse()
     return "".join(alphabet[i] for i in result)
+    
 
 def convert_mid(mid):
     # 将 mid 转换成微博 id
