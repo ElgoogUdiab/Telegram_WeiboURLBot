@@ -71,7 +71,7 @@ def int_to_base(i, alphabet=ALPHABET, padded_length=4):
 def convert_mid(mid):
     # 将 mid 转换成微博 id
     mid_groups = [*map(int, (mid[:2], mid[2:9], mid[9:16]))]
-    mid_groups = [int_to_base(mid_groups[0], length=1), int_to_base(mid_groups[1], length=4), int_to_base(mid_groups[2], length=4)]
+    mid_groups = [int_to_base(mid_groups[0], padded_length=1), int_to_base(mid_groups[1], padded_length=4), int_to_base(mid_groups[2], padded_length=4)]
     return "".join(mid_groups)
 
 def generate_url(mid):
