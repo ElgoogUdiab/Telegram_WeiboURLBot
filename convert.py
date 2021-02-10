@@ -29,7 +29,7 @@ def convert_intl(url):
     else:
         # 实验性特性：在 url 中未给出 mid，加载页面并利用以下 pattern 获取 mid
         # TODO: 反爬（？）
-        pattern = r"<a href=\"javascript:void\(0\)\" onclick=\"forward\(0,\d+\)\">"
+        pattern = r"<a href=\"javascript:void\(0\)\" onclick=\"forward\(0,(\d+)\)\">"
         r = requests.get(url)
         if (match := re.search(pattern, r.text)):
             mid = match.group(1)
