@@ -11,38 +11,63 @@ ALPHABET = [
 
 def convert(url):
     if "weibointl.api.weibo.com" in url:
-        # 国际版链接
+        # 国际版链接，一次访问以获取 mid（+uid）
         return convert_intl(url)
     elif "weibo.com" in url:
         # 电脑版链接，直接返回
         return url
     if "m.weibo.cn" in url:
-        # 手机版链接
+        # 手机版链接，（可能）需要一次访问以获取 uid
         return convert_m(url)
 
 def convert_intl(url):
+    r = requests.get(url)
     # 国际版链接提取 mid
     if (match := re.search(r"weibo_id=(\d+)", url)):
         # url 中已给出 mid，直接利用 mid 转换
         mid = match.group(1)
-        return generate_url(mid)
     else:
-        # 实验性特性：在 url 中未给出 mid，加载页面并利用以下 pattern 获取 mid
-        # TODO: 反爬（？）
-        pattern = r"<a href=\"javascript:void\(0\)\" onclick=\"forward\(0,(\d+)\)\">"
-        r = requests.get(url)
-        if (match := re.search(pattern, r.text)):
+        # 实验性特性：在 url 中未给出 mid 时，使用“App 内打开”按钮获取 mid
+        mid_pattern = r"<a .*?href=\"javascript:void\(0\)\" .*?onclick=\"forward\(0,(\d+),''\)\".*?><span.*?>App 内打开</span>.*?</a>"
+        if (match := re.search(mid_pattern, r.text)):
             mid = match.group(1)
-            return generate_url(mid)
-        raise ValueError("This url is not supported.")
+        else:
+            raise ValueError("This url is not supported.")
+
+    if (match := re.search(r"<header.*>.*?</header>", r.text)):
+        header_content = match.group(0)
+        uid_pattern = r"<a .*?href=\"javascript:void\(0\)\" .*?onclick=\"forward\((\d+),0,''\)\".*?><img.*?>.*?</img>.*?</a>"
+        if (match := re.search(uid_pattern, header_content)):
+            uid = match.group(1)
+        else:
+            uid = get_uid_from_m_page(mid)
+    else:
+        uid = get_uid_from_m_page(mid)
+    return generate_url(uid, convert_mid(mid))
 
 def convert_m(url):
-    # 手机版链接，直接提取 url 最后的数字即可
-    if (match := re.search(r"(\d+)\??$", url)):
-        mid = match.group(1)
-        return generate_url(mid)
+    # 手机版链接
+    # 情况1.1：手机版链接自带uid，数字mid，只需简单转换mid即可返回
+    if (match := re.search(r"(\d+)/(\d{16})", url)):
+        uid, mid = match.group(1), match.group(2)
+        return generate_url(uid, convert_mid(mid))
+    # 情况1.2：手机版链接自带uid，字母数字混合mid，只需简单拼接即可返回
+    if (match := re.search(r"(\d+)/([0-9a-zA-Z]{9})", url)):
+        uid, weibo_id = match.group(1), match.group(2)
+        return generate_url(uid, weibo_id)
+    # 情况2：链接为形如"status/mid"形式，需访问页面获取uid
+    if "status/" in url:
+        # 情况2.1：数字mid
+        if (match := re.search(r"status/([0-9a-zA-Z]{9})", url)):
+            weibo_id = match.group(1)
+            return generate_url(uid=get_uid_from_m_page(weibo_id), weibo_id=weibo_id)
+        # 情况2.2：字母数字混合mid
+        if (match := re.search(r"status/(\d{16})", url)):
+            mid = match.group(1)
+            return generate_url(uid=get_uid_from_m_page(weibo_id), weibo_id=convert_mid(mid))
+    raise ValueError("This url is not supported.")
 
-def get_uid_from_mid(mid):
+def get_uid_from_m_page(mid):
     # 访问手机版 url 获取博主 uid
     url_template = "https://m.weibo.cn/status/{mid}"
     r = requests.get(url_template.format(mid=mid))
@@ -66,7 +91,6 @@ def int_to_base(i, alphabet=ALPHABET, padded_length=4):
         result.append(0)
     result.reverse()
     return "".join(alphabet[i] for i in result)
-    
 
 def convert_mid(mid):
     # 将 mid 转换成微博 id
@@ -74,5 +98,5 @@ def convert_mid(mid):
     mid_groups = [int_to_base(mid_groups[0], padded_length=1), int_to_base(mid_groups[1], padded_length=4), int_to_base(mid_groups[2], padded_length=4)]
     return "".join(mid_groups)
 
-def generate_url(mid):
-    return f"https://weibo.com/{get_uid_from_mid(mid)}/{convert_mid(mid)}"
+def generate_url(uid, weibo_id):
+    return f"https://weibo.com/{uid}/{weibo_id}"
