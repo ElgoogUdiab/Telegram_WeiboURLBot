@@ -10,7 +10,7 @@ ALPHABET = [
 ]
 
 def convert(url):
-    if "weibointl.api.weibo.com" in url:
+    if ".api.weibo.c" in url:
         # 国际版链接，一次访问以获取 mid（+uid）
         return convert_intl(url)
     elif "weibo.com" in url:
