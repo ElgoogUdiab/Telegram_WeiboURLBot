@@ -10,17 +10,29 @@ ALPHABET = [
 ]
 
 def convert(url):
-    if ".api.weibo.c" in url:
-        # 国际版链接，一次访问以获取 mid（+uid）
-        return convert_intl(url)
-    elif "weibo.com" in url:
-        # 电脑版链接，直接返回
-        return url
-    if "m.weibo.cn" in url:
-        # 手机版链接，（可能）需要一次访问以获取 uid
-        return convert_m(url)
-
-def convert_intl(url):
+    # 无论如何，微博是不会愿意把链接跳到电脑端的
+    # 但是由于国际版链接混乱的跳转机制，就在这里先等它跳转完
+    r = requests.head(url, allow_redirects=True)
+    urls = []
+    for req in r.history:
+        urls.append(req.url)
+    urls.append(url)
+    for i, url in enumerate(urls):
+        # 桌面端url，最好的情况了
+        if re.search(r"weibo.com/\d+?/[0-9a-zA-Z]+", url):
+            return url
+        # 这个链接目前不会跳转，且一定指向国际版页面
+        if "share.api.weibo.c" in url:
+            return convert_intl(url)
+        # 这个链接不一定指向国际版页面，可能存在跳转，非最后一次跳转不按照国际版处理
+        if "weibointl.api.weibo.c" in url and i == len(urls)-1:
+            return convert_intl(url)
+        # 看到第一次立刻拿走，有可能是老国际版链接跳转
+        if "m.weibo.cn" in url:
+            # 手机版链接，（可能）需要一次访问以获取 uid
+            return convert_m(url)
+    
+def convert_intl(url, r=None):
     r = requests.get(url)
     # 国际版链接提取 mid
     if (match := re.search(r"weibo_id=(\d+)", url)):
@@ -45,7 +57,7 @@ def convert_intl(url):
         uid = get_uid_from_m_page(mid)
     return generate_url(uid, convert_mid(mid))
 
-def convert_m(url):
+def convert_m(url, r=None):
     # 手机版链接
     # 情况1.1：手机版链接自带uid，数字mid，只需简单转换mid即可返回
     if (match := re.search(r"(\d+)/(\d{16})", url)):
