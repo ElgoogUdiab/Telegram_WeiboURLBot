@@ -70,13 +70,13 @@ def convert_m(url, r=None):
     # 情况2：链接为形如"status/mid"形式，需访问页面获取uid
     if "status/" in url:
         # 情况2.1：数字mid
+        if (match := re.search(r"status/(\d{16})", url)):
+            mid = match.group(1)
+            return generate_url(uid=get_uid_from_m_page(mid), weibo_id=convert_mid(mid))
+        # 情况2.2：字母数字混合mid
         if (match := re.search(r"status/([0-9a-zA-Z]{9})", url)):
             weibo_id = match.group(1)
             return generate_url(uid=get_uid_from_m_page(weibo_id), weibo_id=weibo_id)
-        # 情况2.2：字母数字混合mid
-        if (match := re.search(r"status/(\d{16})", url)):
-            mid = match.group(1)
-            return generate_url(uid=get_uid_from_m_page(weibo_id), weibo_id=convert_mid(mid))
     raise ValueError("This url is not supported.")
 
 def get_uid_from_m_page(mid):
