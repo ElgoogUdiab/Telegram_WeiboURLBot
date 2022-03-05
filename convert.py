@@ -35,6 +35,9 @@ def convert(url):
 def convert_intl(url, r=None):
     r = requests.get(url)
     # 国际版链接提取 mid
+    if (match := re.search(r"(\d{9}),(\d{16})\.html?"), url):
+        uid, mid = match.group(1), match.group(2)
+        return generate_url(uid, convert_mid(mid))
     if (match := re.search(r"weibo_id=(\d+)", url)):
         # url 中已给出 mid，直接利用 mid 转换
         mid = match.group(1)
