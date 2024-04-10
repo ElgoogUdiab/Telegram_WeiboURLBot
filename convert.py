@@ -1,5 +1,6 @@
 import re
 import requests
+import urllib.parse
 
 ALPHABET = [
     "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
@@ -10,6 +11,19 @@ ALPHABET = [
 ]
 
 def convert(url):
+    if "xhslink.com" in url:
+        return convert_xhs(url)
+    else:
+        return convert_weibo(url)
+    
+def convert_xhs(share_text):
+    # find urls from the chunk of messy text.
+    url = re.findall(r"https?://[^\s]+", share_text)[0]
+    r = requests.head(url, allow_redirects=True)
+    parsed_url = urllib.parse.urlparse(r.history[-1].url)
+    return f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
+
+def convert_weibo(url):
     # 无论如何，微博是不会愿意把链接跳到电脑端的
     # 但是由于国际版链接混乱的跳转机制，就在这里先等它跳转完
     r = requests.head(url, allow_redirects=True)
